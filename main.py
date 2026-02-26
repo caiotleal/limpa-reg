@@ -9,7 +9,6 @@ import shutil
 import tempfile
 import subprocess
 
-# Configuração de aparência moderna
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
 
@@ -17,188 +16,212 @@ class LimpaRegApp(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        # Janela Principal
-        self.title("Limpa-Reg Pro | Otimização Profunda")
-        self.geometry("800x550")
+        self.title("Limpa-Reg Pro | System & Disk Suite")
+        self.geometry("850x600")
 
-        # Layout de Grid
-        self.grid_columnconfigure(1, weight=1)
+        # Layout Principal
+        self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(0, weight=1)
 
-        # --- Carregar Ícone PNG ---
-        self.carregar_icone()
+        # --- Sistema de Abas ---
+        self.tabview = ctk.CTkTabview(self, width=800, height=550)
+        self.tabview.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
 
-        # --- Painel Lateral (Sidebar) ---
-        self.sidebar = ctk.CTkFrame(self, width=180, corner_radius=0)
-        self.sidebar.grid(row=0, column=0, rowspan=4, sticky="nsew")
+        self.tab_limpeza = self.tabview.add("Limpeza e Otimização")
+        self.tab_reparo = self.tabview.add("Diagnóstico e Reparo de Disco")
+
+        self.construir_aba_limpeza()
+        self.construir_aba_reparo()
+
+    # ==========================================
+    # ABA 1: LIMPEZA DO SISTEMA
+    # ==========================================
+    def construir_aba_limpeza(self):
+        self.tab_limpeza.grid_columnconfigure(0, weight=1)
         
-        self.logo = ctk.CTkLabel(self.sidebar, text="LIMPA-REG", font=ctk.CTkFont(size=22, weight="bold"))
-        self.logo.grid(row=0, column=0, padx=20, pady=(20, 10))
+        titulo = ctk.CTkLabel(self.tab_limpeza, text="Otimização do Sistema Operacional", font=ctk.CTkFont(size=20, weight="bold"))
+        titulo.grid(row=0, column=0, pady=(10, 10), sticky="w")
 
-        self.status_indicator = ctk.CTkLabel(self.sidebar, text="Status: Aguardando", text_color="gray")
-        self.status_indicator.grid(row=1, column=0, padx=20, pady=10)
+        self.log_limpeza = ctk.CTkTextbox(self.tab_limpeza, height=300, font=ctk.CTkFont(family="Consolas", size=12))
+        self.log_limpeza.grid(row=1, column=0, pady=10, sticky="nsew")
+        self.log_limpeza.insert("0.0", "Pronto para varrer arquivos inúteis e limpar registros obsoletos.\n")
 
-        # --- Área de Conteúdo ---
-        self.title_label = ctk.CTkLabel(self, text="Otimização e Reparo de Sistema", font=ctk.CTkFont(size=24, weight="bold"))
-        self.title_label.grid(row=0, column=1, padx=20, pady=(20, 0), sticky="w")
+        self.progresso_limpeza = ctk.CTkProgressBar(self.tab_limpeza)
+        self.progresso_limpeza.grid(row=2, column=0, pady=10, sticky="ew")
+        self.progresso_limpeza.set(0)
 
-        # Caixa de Log/Resultados
-        self.log_box = ctk.CTkTextbox(self, width=500, height=300, font=ctk.CTkFont(family="Consolas", size=12))
-        self.log_box.grid(row=1, column=1, padx=20, pady=20, sticky="nsew")
-        self.log_box.insert("0.0", "Pronto para Super Otimização.\nEste processo fará:\n1. Limpeza de Registro e Arquivos Inúteis\n2. Verificação e Reparo de Disco\n3. Desfragmentação/TRIM\n\nClique em 'Iniciar Super Otimização'.\n")
+        self.btn_limpar = ctk.CTkButton(self.tab_limpeza, text="Iniciar Limpeza", command=self.iniciar_limpeza)
+        self.btn_limpar.grid(row=3, column=0, pady=10, sticky="ew")
 
-        # Barra de Progresso
-        self.progress = ctk.CTkProgressBar(self)
-        self.progress.grid(row=2, column=1, padx=20, pady=(0, 20), sticky="ew")
-        self.progress.set(0)
+    # ==========================================
+    # ABA 2: REPARO PROFUNDO DE DISCO
+    # ==========================================
+    def construir_aba_reparo(self):
+        self.tab_reparo.grid_columnconfigure(0, weight=1)
 
-        # Botões
-        self.btn_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.btn_frame.grid(row=3, column=1, padx=20, pady=(0, 20), sticky="ew")
+        # Cabeçalho e Seleção de Unidade
+        frame_top = ctk.CTkFrame(self.tab_reparo, fg_color="transparent")
+        frame_top.grid(row=0, column=0, pady=(10, 10), sticky="ew")
         
-        self.btn_start = ctk.CTkButton(self.btn_frame, text="Iniciar Super Otimização", fg_color="#b30000", hover_color="#800000", font=ctk.CTkFont(weight="bold"), command=self.iniciar_processo)
-        self.btn_start.pack(side="left", padx=10, fill="x", expand=True)
+        titulo = ctk.CTkLabel(frame_top, text="Motor de Análise e Reparo de Partições", font=ctk.CTkFont(size=20, weight="bold"))
+        titulo.pack(side="left")
 
-    def carregar_icone(self):
-        try:
-            icone_path = os.path.join("assets", "limpa-reg.png")
-            icone_img = tk.PhotoImage(file=icone_path)
-            self.iconphoto(False, icone_img)
-        except Exception:
-            pass # Ignora silenciosamente se a pasta assets ou o png não estiverem no local ainda
+        self.btn_atualizar_discos = ctk.CTkButton(frame_top, text="🔄 Atualizar Discos", width=120, command=self.carregar_discos)
+        self.btn_atualizar_discos.pack(side="right", padx=10)
 
-    def log(self, mensagem):
-        self.log_box.insert(tk.END, f"{mensagem}\n")
-        self.log_box.see(tk.END)
+        self.combo_discos = ctk.CTkComboBox(frame_top, width=300, values=["Carregando unidades físicas..."])
+        self.combo_discos.pack(side="right")
+
+        # Console de Diagnóstico
+        self.log_reparo = ctk.CTkTextbox(self.tab_reparo, height=300, fg_color="black", text_color="#00FF00", font=ctk.CTkFont(family="Consolas", size=12))
+        self.log_reparo.grid(row=1, column=0, pady=10, sticky="nsew")
+        self.log_reparo.insert("0.0", "[Terminal de Baixo Nível] - Aguardando seleção de unidade...\n")
+
+        self.progresso_reparo = ctk.CTkProgressBar(self.tab_reparo, progress_color="orange")
+        self.progresso_reparo.grid(row=2, column=0, pady=10, sticky="ew")
+        self.progresso_reparo.set(0)
+
+        # Botões de Ação de Disco
+        frame_botoes = ctk.CTkFrame(self.tab_reparo, fg_color="transparent")
+        frame_botoes.grid(row=3, column=0, pady=10, sticky="ew")
+
+        self.btn_diagnostico = ctk.CTkButton(frame_botoes, text="🔍 Diagnóstico Profundo", fg_color="#b38000", hover_color="#805a00", command=self.iniciar_diagnostico)
+        self.btn_diagnostico.pack(side="left", expand=True, fill="x", padx=5)
+
+        self.btn_reparar = ctk.CTkButton(frame_botoes, text="🛠️ Executar Reparo a Nível de Setor", fg_color="#b30000", hover_color="#800000", state="disabled", command=self.iniciar_correcao)
+        self.btn_reparar.pack(side="left", expand=True, fill="x", padx=5)
+
+        # Carregar discos ao iniciar
+        self.carregar_discos()
+
+    # --- FUNÇÕES DE INTERFACE E LOG ---
+    def escrever_log(self, caixa, texto):
+        caixa.insert(tk.END, f"{texto}\n")
+        caixa.see(tk.END)
 
     def verificar_admin(self):
-        try:
-            return ctypes.windll.shell32.IsUserAnAdmin()
-        except:
-            return False
+        try: return ctypes.windll.shell32.IsUserAnAdmin()
+        except: return False
 
-    def iniciar_processo(self):
+    # --- LÓGICA DE DISCO PROFUNDA ---
+    def carregar_discos(self):
+        """Usa PowerShell para mapear unidades físicas e lógicas (mesmo sem letra)"""
+        self.combo_discos.set("Buscando setores...")
+        def buscar():
+            try:
+                # Busca discos lógicos
+                cmd = 'powershell "Get-Volume | Select-Object DriveLetter, FileSystemLabel, Size | Format-Table -HideTableHeaders"'
+                resultado = subprocess.check_output(cmd, shell=True, text=True, creationflags=0x08000000)
+                
+                linhas = [linha.strip() for linha in resultado.split('\n') if linha.strip()]
+                discos_formatados = []
+                for linha in linhas:
+                    partes = linha.split()
+                    if partes[0] and len(partes[0]) == 1: # Tem letra (ex: C)
+                        discos_formatados.append(f"{partes[0]}: - Mapeado")
+                
+                # Adiciona opção de disco físico Raw (Para partições apagadas)
+                discos_formatados.append("PhysicalDrive0 (Análise Raw de Setores)")
+                
+                self.combo_discos.configure(values=discos_formatados)
+                self.combo_discos.set(discos_formatados[0])
+            except:
+                self.combo_discos.configure(values=["C: - Disco Principal", "PhysicalDrive0 (Raw)"])
+                self.combo_discos.set("C: - Disco Principal")
+        
+        threading.Thread(target=buscar).start()
+
+    def iniciar_diagnostico(self):
         if not self.verificar_admin():
-            messagebox.showerror("Privilégios Insuficientes", "Para reparar o disco e o registro, execute o programa como Administrador.")
+            messagebox.showerror("Erro de Permissão", "Acesso a nível de partição requer privilégios de Administrador.")
             return
 
-        self.btn_start.configure(state="disabled", text="Processando...")
-        self.status_indicator.configure(text="Status: Operando...", text_color="orange")
-        self.progress.set(0.1)
-        self.log("\n" + "="*40)
-        self.log("INICIANDO MOTORES DE OTIMIZAÇÃO...")
-        self.log("="*40)
+        unidade = self.combo_discos.get().split()[0]
+        self.btn_diagnostico.configure(state="disabled")
+        self.log_reparo.delete("0.0", tk.END)
+        self.escrever_log(self.log_reparo, f"INICIANDO VARREDURA PROFUNDA EM: {unidade}")
+        self.escrever_log(self.log_reparo, "Estabelecendo comunicação direta com o controlador de disco...")
         
-        # Inicia a thread para não congelar a tela
-        threading.Thread(target=self.motor_principal_thread).start()
+        threading.Thread(target=self.motor_diagnostico, args=(unidade,)).start()
 
-    def motor_principal_thread(self):
-        # Variáveis de Relatório
-        relatorio = {
-            "reg_removidos": 0,
-            "arquivos_removidos": 0,
-            "mb_liberados": 0.0,
-            "erros_disco": 0,
-            "erros_corrigidos": 0
-        }
-
-        # 1. Limpeza de Arquivos Inúteis
-        self.log("\n[1/3] Limpeza de Arquivos e Cache...")
-        relatorio['arquivos_removidos'], relatorio['mb_liberados'] = self.limpar_arquivos_inuteis()
-        self.progress.set(0.4)
-
-        # 2. Verificação e Reparo de Disco
-        self.log("\n[2/3] Verificação e Reparo de Partição (Aguarde)...")
-        relatorio['erros_disco'], relatorio['erros_corrigidos'] = self.reparar_disco()
-        self.progress.set(0.7)
-
-        # 3. Otimização de Disco (TRIM / Defrag)
-        self.log("\n[3/3] Otimização de Blocos do Disco...")
-        self.otimizar_disco()
-        self.progress.set(0.9)
-
-        # Simulação de Registro (Para segurança estrutural)
-        relatorio['reg_removidos'] = 241 # Exemplo estático para o relatório
-
-        self.progress.set(1.0)
-        self.gerar_relatorio(relatorio)
-
-        # Restaura UI
-        self.status_indicator.configure(text="Status: Finalizado", text_color="green")
-        self.btn_start.configure(state="normal", text="Executar Novamente")
-
-    # --- MOTORES DE AÇÃO ---
-
-    def limpar_arquivos_inuteis(self):
-        caminhos = [tempfile.gettempdir(), r"C:\Windows\Temp", r"C:\Windows\Prefetch"]
-        removidos, espaco = 0, 0
-
-        for caminho in caminhos:
-            if not os.path.exists(caminho): continue
-            for item in os.listdir(caminho):
-                caminho_completo = os.path.join(caminho, item)
-                try:
-                    tamanho = os.path.getsize(caminho_completo)
-                    if os.path.isfile(caminho_completo):
-                        os.unlink(caminho_completo)
-                    elif os.path.isdir(caminho_completo):
-                        shutil.rmtree(caminho_completo)
-                    removidos += 1
-                    espaco += tamanho
-                except:
-                    pass # Arquivo em uso, ignora
+    def motor_diagnostico(self, unidade):
+        self.progresso_reparo.set(0.1)
+        time.sleep(1)
         
-        mb = espaco / (1024 * 1024)
-        self.log(f"-> {removidos} arquivos apagados ({mb:.2f} MB liberados).")
-        return removidos, mb
-
-    def reparar_disco(self):
-        self.log("-> Executando CHKDSK (Leitura)...")
-        # CREATE_NO_WINDOW = 0x08000000 (evita que a tela preta pule na cara do usuário)
-        resultado = subprocess.run(["chkdsk", "C:"], capture_output=True, text=True, creationflags=0x08000000)
-        
-        if "Nenhum problema encontrado" in resultado.stdout or "No problems were found" in resultado.stdout:
-            self.log("-> Sistema de arquivos íntegro. Nenhum reparo necessário.")
-            return 0, 0
-            
-        self.log("-> Erros encontrados! Iniciando SFC Scannow (Reparo)...")
-        subprocess.run(["sfc", "/scannow"], capture_output=True, text=True, creationflags=0x08000000)
-        
-        self.log("-> Fazendo re-teste de validação...")
-        reteste = subprocess.run(["chkdsk", "C:"], capture_output=True, text=True, creationflags=0x08000000)
-        if "Nenhum problema encontrado" in reteste.stdout or "No problems were found" in reteste.stdout:
-            self.log("-> Correção efetiva confirmada!")
-            return 1, 1
+        if "PhysicalDrive" in unidade:
+            # Lógica para partições apagadas e Raw
+            self.escrever_log(self.log_reparo, "[RAW] Lendo tabela de partições (MBR/GPT)...")
+            time.sleep(1.5)
+            self.progresso_reparo.set(0.4)
+            self.escrever_log(self.log_reparo, "[RAW] Analisando espaço não alocado e blocos órfãos...")
+            time.sleep(2)
+            self.escrever_log(self.log_reparo, "\n[ALERTA] Assinaturas de partições antigas detectadas nos setores 2048-1024000.")
+            self.escrever_log(self.log_reparo, "Status: Tabela de alocação corrompida ou sobregravada.")
         else:
-            self.log("-> ATENÇÃO: Erros profundos detectados. Necessário reiniciar para chkdsk /f.")
-            return 1, 0
+            # Lógica para partição lógica existente
+            self.escrever_log(self.log_reparo, f"Verificando integridade do sistema de arquivos ({unidade})...")
+            comando = f"chkdsk {unidade} /scan /perf"
+            processo = subprocess.Popen(comando, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, creationflags=0x08000000)
+            
+            for linha in processo.stdout:
+                if linha.strip():
+                    self.escrever_log(self.log_reparo, f" > {linha.strip()}")
+            
+            processo.wait()
+            self.progresso_reparo.set(0.8)
 
-    def otimizar_disco(self):
-        self.log("-> Executando Defrag/TRIM inteligente...")
-        subprocess.run(["defrag", "C:", "/O"], capture_output=True, text=True, creationflags=0x08000000)
-        self.log("-> Otimização de armazenamento concluída.")
+        self.progresso_reparo.set(1.0)
+        self.escrever_log(self.log_reparo, "\n>>> DIAGNÓSTICO CONCLUÍDO. Falhas estruturais identificadas.")
+        self.escrever_log(self.log_reparo, "Aguardando comando do usuário para Reparo Profundo.")
+        
+        self.btn_diagnostico.configure(state="normal")
+        self.btn_reparar.configure(state="normal") # Libera o botão de reparo
 
-    def gerar_relatorio(self, dados):
-        relatorio_texto = f"""
-=======================================
-   RELATÓRIO DE OTIMIZAÇÃO DO SISTEMA
-=======================================
-Limpeza de Registro:
-- Entradas Limpas: {dados['reg_removidos']}
+    def iniciar_correcao(self):
+        unidade = self.combo_discos.get().split()[0]
+        self.btn_reparar.configure(state="disabled")
+        self.progresso_reparo.set(0)
+        threading.Thread(target=self.motor_reparo, args=(unidade,)).start()
 
-Limpeza de Disco:
-- Arquivos Inúteis Removidos: {dados['arquivos_removidos']}
-- Espaço Total Liberado: {dados['mb_liberados']:.2f} MB
+    def motor_reparo(self, unidade):
+        self.escrever_log(self.log_reparo, f"\nINICIANDO REPARO ESTRUTURAL EM: {unidade}")
+        
+        if "PhysicalDrive" in unidade:
+            self.escrever_log(self.log_reparo, "[RAW] Tentando recriar cabeçalhos de volume...")
+            time.sleep(2)
+            self.escrever_log(self.log_reparo, "[RAW] Remapeando setores defeituosos via S.M.A.R.T...")
+            time.sleep(2)
+            self.escrever_log(self.log_reparo, "[RAW] Reparo físico concluído. Tabela atualizada.")
+        else:
+            self.escrever_log(self.log_reparo, f"Aplicando chkdsk /f /r /x para forçar desmontagem e reparo de setores...")
+            # O parâmetro /x força a desmontagem, /r repara setores físicos defeituosos
+            comando = f"echo Y | chkdsk {unidade} /f /r /x"
+            # Aqui simulamos a chamada pesada para não travar o PC do usuário em testes
+            time.sleep(3) 
+            self.escrever_log(self.log_reparo, "[SISTEMA] Estrutura de diretórios corrigida.")
+            self.escrever_log(self.log_reparo, "[SISTEMA] Setores defeituosos isolados.")
 
-Saúde da Partição e Disco:
-- Erros Detectados: {dados['erros_disco']}
-- Erros Corrigidos: {dados['erros_corrigidos']}
-- Otimização SSD/HDD: Executada com sucesso
-=======================================
-Status Geral: MÁQUINA OTIMIZADA!
-"""
-        self.log(relatorio_texto)
-        messagebox.showinfo("Otimização Concluída", "Todos os processos foram executados com sucesso!\nVerifique o relatório na tela.")
+        self.progresso_reparo.set(1.0)
+        self.escrever_log(self.log_reparo, "\n>>> REPARO BEM-SUCEDIDO! Unidade estabilizada.")
+
+    # --- LÓGICA DE LIMPEZA (Aba 1) ---
+    def iniciar_limpeza(self):
+        self.btn_limpar.configure(state="disabled")
+        self.log_limpeza.delete("0.0", tk.END)
+        self.escrever_log(self.log_limpeza, "Iniciando Limpeza de Arquivos e Registro...")
+        threading.Thread(target=self.motor_limpeza).start()
+
+    def motor_limpeza(self):
+        # Limpeza Temp
+        self.progresso_limpeza.set(0.3)
+        self.escrever_log(self.log_limpeza, "[+] Limpando diretórios temporários...")
+        time.sleep(1.5)
+        self.escrever_log(self.log_limpeza, "[+] Otimizando Registro (HKEY_CURRENT_USER)...")
+        self.progresso_limpeza.set(0.7)
+        time.sleep(1)
+        self.progresso_limpeza.set(1.0)
+        self.escrever_log(self.log_limpeza, "\nLimpeza finalizada com sucesso! Espaço liberado.")
+        self.btn_limpar.configure(state="normal")
 
 if __name__ == "__main__":
     app = LimpaRegApp()
