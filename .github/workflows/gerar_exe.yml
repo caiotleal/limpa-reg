@@ -1,0 +1,36 @@
+name: Gerar Executavel Windows
+
+# Isso faz a automação rodar toda vez que você salvar o código ou clicar em um botão
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    # A mágica acontece aqui: pedimos um Windows emprestado para o GitHub!
+    runs-on: windows-latest
+
+    steps:
+    - name: 1. Baixando o código do repositório
+      uses: actions/checkout@v4
+
+    - name: 2. Instalando o Python no Windows da nuvem
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: 3. Instalando as bibliotecas
+      run: |
+        python -m pip install --upgrade pip
+        pip install customtkinter pyinstaller
+
+    - name: 4. Gerando o arquivo .EXE
+      run: |
+        pyinstaller --noconsole --onefile --uac-admin --collect-all customtkinter main.py
+
+    - name: 5. Disponibilizando o EXE para Download
+      uses: actions/upload-artifact@v4
+      with:
+        name: Limpa-Reg-App
+        path: dist/main.exe
