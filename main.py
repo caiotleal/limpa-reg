@@ -92,7 +92,8 @@ class LimpaRegApp(ctk.CTk):
         self.btn_diagnostico = ctk.CTkButton(frame_botoes, text="🧬 Leitura S.M.A.R.T. (Chip)", fg_color="#0066cc", hover_color="#004c99", command=self.iniciar_diagnostico_smart)
         self.btn_diagnostico.pack(side="left", expand=True, fill="x", padx=5)
 
-        self.btn_reparar = ctk.CTkButton(frame_botoes, text="☢️ Reconstrução Forense (Wipe)", fg_color="#b30000", hover_color="#800000", state="disabled", command=self.iniciar_correcao_forense)
+        # Botão de Wipe agora sempre ATIVO por padrão para agilizar o fluxo de trabalho
+        self.btn_reparar = ctk.CTkButton(frame_botoes, text="☢️ Reconstrução Forense (Wipe)", fg_color="#b30000", hover_color="#800000", state="normal", command=self.iniciar_correcao_forense)
         self.btn_reparar.pack(side="left", expand=True, fill="x", padx=5)
 
         self.carregar_discos_fisicos()
@@ -150,20 +151,18 @@ class LimpaRegApp(ctk.CTk):
     def motor_diagnostico_smart(self, id_disco, nome_completo):
         self.progresso_reparo.set(0.2)
         try:
-            cmd_smart = f'powershell "Get-StorageReliabilityCounter -PhysicalDisk (Get-PhysicalDisk -DeviceId {id_disco}) | Select-Object Temperature, ReadErrorsTotal, WriteErrorsTotal, Wear | ConvertTo-Json"'
+            # Comando PowerShell blindado e reforçado para contornar falhas de comunicação com adaptadores USB
+            cmd_smart = f'powershell "Get-PhysicalDisk -DeviceId \'{id_disco}\' | Get-StorageReliabilityCounter | Select-Object Temperature, ReadErrorsTotal, WriteErrorsTotal, Wear | ConvertTo-Json"'
             resultado = subprocess.check_output(cmd_smart, shell=True, text=True, creationflags=0x08000000)
             
             time.sleep(1.5)
             self.escrever_log(self.log_reparo, f"\n[+] Relatório de Hardware: {nome_completo}")
 
-            # Se for SD/USB, o Windows retorna vazio porque não há sensor S.M.A.R.T.
             if not resultado.strip() or resultado.strip() == "{}":
                 self.escrever_log(self.log_reparo, "    ├─ Controladora S.M.A.R.T: [NÃO SUPORTADA]")
                 self.escrever_log(self.log_reparo, "    └─ Status: Dispositivo Flash Genérico (SD/Pendrive).")
                 self.escrever_log(self.log_reparo, "\n[INFO] Cartões de memória não reportam danos físicos preventivamente.")
-                self.escrever_log(self.log_reparo, "Se o cartão estiver corrompido ou em modo 'Somente Leitura', execute o Wipe Forense em modo FAT32/MBR.")
-                # Libera o botão de wipe para SD/USB automaticamente
-                self.btn_reparar.configure(state="normal")
+                self.escrever_log(self.log_reparo, "Se o cartão estiver corrompido ou em modo 'Somente Leitura', execute o Wipe Forense.")
             else:
                 dados = json.loads(resultado)
                 temp = dados.get("Temperature", "N/A")
@@ -179,29 +178,36 @@ class LimpaRegApp(ctk.CTk):
                 else:
                     self.escrever_log(self.log_reparo, "\n[OK] Integridade física do hardware validada.")
 
-            # Verifica se é o Disco do Sistema (C:)
-            try:
-                cmd_boot = f'powershell "Get-Partition -DiskNumber {id_disco} | Where-Object DriveLetter -eq \'C\' | Measure-Object | Select-Object -ExpandProperty Count"'
-                is_boot = subprocess.check_output(cmd_boot, shell=True, text=True, creationflags=0x08000000).strip()
-            except:
-                is_boot = "0" # Se falhar a leitura de partição, significa que o disco está raw (não é o C:)
-            
-            if is_boot == "0":
-                self.btn_reparar.configure(state="normal")
-            else:
-                self.btn_reparar.configure(state="disabled")
-                self.escrever_log(self.log_reparo, "\n[BLOQUEIO DE SEGURANÇA] Unidade de boot (C:) detectada neste disco físico.")
-                self.escrever_log(self.log_reparo, "A Reconstrução Forense está desativada para evitar destruição do Windows.")
-
+        except subprocess.CalledProcessError:
+            self.escrever_log(self.log_reparo, "\n[ERRO DE COMUNICAÇÃO] O dispositivo recusou a leitura S.M.A.R.T.")
+            self.escrever_log(self.log_reparo, "Causas: Adaptador USB bloqueando comandos de baixo nível ou disco virtual.")
         except Exception as e:
-            self.escrever_log(self.log_reparo, f"\n[ERRO] Falha na comunicação: {e}")
+            self.escrever_log(self.log_reparo, f"\n[ERRO] Falha interna: {e}")
         
         self.progresso_reparo.set(1.0)
         self.btn_diagnostico.configure(state="normal")
 
     def iniciar_correcao_forense(self):
+        if not self.verificar_admin():
+            messagebox.showerror("Acesso Negado", "Operações destrutivas requerem elevação (Admin).")
+            return
+
         disco_selecionado = self.combo_discos.get()
+        if "Falha" in disco_selecionado or "Lendo" in disco_selecionado or "Aguardando" in disco_selecionado: return
+
         id_disco = disco_selecionado.split("|")[0].replace("Disco", "").strip()
+
+        # Proteção ativa: Verifica instantaneamente se o usuário está tentando apagar o C:
+        try:
+            cmd_boot = f'powershell "Get-Partition -DiskNumber {id_disco} | Where-Object DriveLetter -eq \'C\' | Measure-Object | Select-Object -ExpandProperty Count"'
+            is_boot = subprocess.check_output(cmd_boot, shell=True, text=True, creationflags=0x08000000).strip()
+            
+            if is_boot != "0":
+                messagebox.showerror("Bloqueio de Segurança", "O Windows está sendo executado neste disco (C:).\nA Reconstrução Forense foi bloqueada para evitar a destruição do sistema.")
+                return
+        except:
+            pass # Se o comando falhar (disco RAW), ele assume que não é o C: e segue para a interface de Wipe
+
         self.after(0, self.janela_autorizacao_forense, id_disco, disco_selecionado)
 
     def janela_autorizacao_forense(self, id_disco, nome_completo):
